@@ -6,7 +6,7 @@ const cors = require('cors');
 const connectDB = require('./config/db'); // Database connection
 const authRoutes = require('./routes/authRoutes'); // Auth routes
 const userRoutes = require('./routes/userRoutes');   // User routes
-const protectedRoutes = require('./routes/protectedRoutes'); // Example protected routes
+const protectedRoutes = require('./routes/protectedRoutes'); // Example protected
 
 const app = express();
 const PORT = process.env.PORT || 5000;
