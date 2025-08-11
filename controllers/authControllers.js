@@ -1,98 +1,94 @@
-// controllers/authController.js
 const User = require('../models/User');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { jwtSecret, jwtExpiresIn } = require('../config/jwt'); // Get secret from config
+const jwtConfig = require('../config/jwt');
 
-// Helper function to generate JWT token
-const generateToken = (id) => {
-  return jwt.sign({ id }, jwtSecret, {
-    expiresIn: jwtExpiresIn,
-  });
-};
-
-// @desc    Register new user
-// @route   POST /api/auth/register
+// @route   POST api/auth/register
+// @desc    Register a new user
 // @access  Public
-const registerUser = async (req, res) => {
-  const { name, email, password } = req.body;
+exports.registerUser = async (req, res) => {
+    const { name, email, password } = req.body;
 
-  // Basic validation
-  if (!name || !email || !password) {
-    return res.status(400).json({ message: 'Please enter all fields.' });
-  }
+    try {
+        // 1. Check if user already exists
+        let user = await User.findOne({ email });
+        if (user) {
+            return res.status(400).json({ message: 'User already exists' });
+        }
 
-  try {
-    // Check if user already exists
-    let user = await User.findOne({ email });
-    if (user) {
-      return res.status(400).json({ message: 'User with this email already exists.' });
+        // 2. Create a new user instance
+        user = new User({
+            name,
+            email,
+            password,
+        });
+
+        // 3. Hash the password before saving <<<< THIS IS THE FIX
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(password, salt);
+
+        // 4. Save the user to the database
+        await user.save();
+
+        // 5. Create and return a JWT
+        const payload = {
+            user: {
+                id: user.id,
+            },
+        };
+
+        jwt.sign(
+            payload,
+            jwtConfig.secret,
+            { expiresIn: jwtConfig.expiresIn },
+            (err, token) => {
+                if (err) throw err;
+                res.status(201).json({ token });
+            }
+        );
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ message: 'Internal Server Error' });
     }
-
-    // Create new user (password will be hashed by pre-save middleware)
-    user = await User.create({ name, email, password });
-
-    // Respond with success and token
-    res.status(201).json({
-      message: 'User registered successfully!',
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-      },
-      token: generateToken(user._id),
-    });
-  } catch (error) {
-    console.error(error);
-    // Handle Mongoose validation errors or other server errors
-    if (error.name === 'ValidationError') {
-      const messages = Object.values(error.errors).map(val => val.message);
-      return res.status(400).json({ message: messages.join(', ') });
-    }
-    res.status(500).json({ message: 'Server error during registration.' });
-  }
 };
 
+// @route   POST api/auth/login
 // @desc    Authenticate user & get token
-// @route   POST /api/auth/login
 // @access  Public
-const loginUser = async (req, res) => {
-  const { email, password } = req.body;
+exports.loginUser = async (req, res) => {
+    const { email, password } = req.body;
 
-  // Basic validation
-  if (!email || !password) {
-    return res.status(400).json({ message: 'Please enter all fields.' });
-  }
+    try {
+        // 1. Check if user exists
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(400).json({ message: 'Invalid credentials' });
+        }
 
-  try {
-    // Check if user exists
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ message: 'Invalid credentials.' }); // Generic message for security
+        // 2. Compare the provided password with the stored hashed password
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Invalid credentials' });
+        }
+
+        // 3. Create and return a JWT
+        const payload = {
+            user: {
+                id: user.id,
+            },
+        };
+
+        jwt.sign(
+            payload,
+            jwtConfig.secret,
+            { expiresIn: jwtConfig.expiresIn },
+            (err, token) => {
+                if (err) throw err;
+                res.json({ token });
+            }
+        );
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ message: 'Internal Server Error' });
     }
-
-    // Compare provided password with hashed password
-    const isMatch = await user.matchPassword(password);
-    if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid credentials.' }); // Generic message for security
-    }
-
-    // Respond with success and token
-    res.status(200).json({
-      message: 'Logged in successfully!',
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-      },
-      token: generateToken(user._id),
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error during login.' });
-  }
-};
-
-module.exports = {
-  registerUser,
-  loginUser,
 };

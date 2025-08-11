@@ -1,10 +1,11 @@
-// routes/userRoutes.js
 const express = require('express');
-const { getUserProfile } = require('../controllers/userController');
-const { protect } = require('../middleware/authMiddleware');
-
 const router = express.Router();
+const { getAllUsers, getUserById } = require('../controllers/userController');
 
-router.get('/profile', protect, getUserProfile); // This route requires authentication
+// Route to get all users
+router.get('/', getAllUsers);
+
+// Route to get a single user by ID
+router.get('/:id', getUserById);
 
 module.exports = router;
