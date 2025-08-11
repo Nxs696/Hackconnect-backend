@@ -9,7 +9,7 @@ const userRoutes = require('./routes/userRoutes');   // User routes
 const protectedRoutes = require('./routes/protectedRoutes'); // Example protected
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 
 // Connect to Database
 connectDB();
