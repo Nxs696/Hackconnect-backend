@@ -1,11 +1,23 @@
 const express = require('express');
 const router = express.Router();
-const { getHackathons, createHackathon } = require('../controllers/hackathonController');
+const {
+  getHackathons,
+  createHackathon,
+  getHackathonById,
+  updateHackathon,
+  deleteHackathon,
+} = require('../controllers/hackathonController');
 const { protect } = require('../middleware/authMiddleware');
 
-// Chaining routes that have the same path
+// Route for /api/hackathons
 router.route('/')
-  .get(getHackathons) // Anyone can get hackathons
-  .post(protect, createHackathon); // Only logged-in users can create one
+  .get(getHackathons)
+  .post(protect, createHackathon);
+
+// Route for /api/hackathons/:id
+router.route('/:id')
+  .get(getHackathonById)
+  .put(protect, updateHackathon)
+  .delete(protect, deleteHackathon);
 
 module.exports = router;
