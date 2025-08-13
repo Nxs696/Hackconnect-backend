@@ -1,33 +1,40 @@
 const jwt = require('jsonwebtoken');
-const { jwtSecret } = require('../config/jwt');
-const User = require('../models/User');
+const asyncHandler = require('express-async-handler');
+const User = require('../models/userModel');
 
-const protect = async (req, res, next) => {
+const protect = asyncHandler(async (req, res, next) => {
   let token;
 
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+  // Check for the token in the authorization header
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer')
+  ) {
     try {
+      // Get token from header (it's in the format "Bearer <token>")
       token = req.headers.authorization.split(' ')[1];
 
-      // Verify token
-      const decoded = jwt.verify(token, jwtSecret);
+      // Verify the token using our secret
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      // FIX: Read the user ID directly from the decoded payload
+      // Get user from the token's ID and attach it to the request object
+      // We exclude the password from the user object
       req.user = await User.findById(decoded.id).select('-password');
-
+      
+      // Move on to the next middleware or the route handler
       next();
     } catch (error) {
-      console.error('Authorization error:', error.message);
-      if (error.name === 'TokenExpiredError') {
-        return res.status(401).json({ message: 'Token has expired.' });
-      }
-      res.status(401).json({ message: 'Not authorized, token failed.' });
+      console.error(error);
+      res.status(401);
+      throw new Error('Not authorized, token failed');
     }
   }
 
+  // If there's no token at all
   if (!token) {
-    res.status(401).json({ message: 'Not authorized, no token provided.' });
+    res.status(401);
+    throw new Error('Not authorized, no token');
   }
-};
+});
 
 module.exports = { protect };

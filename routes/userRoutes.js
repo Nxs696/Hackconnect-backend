@@ -1,17 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const { getAllUsers, getUserById } = require('../controllers/userController');
-// You can remove the next line as 'auth' is no longer used in this file
-// const auth = require('../middleware/authMiddleware');
+// Update the import to include loginUser
+const { registerUser, loginUser ,  getUserProfile, } = require('../controllers/userController');
+const { protect } = require('../middleware/authMiddleware');
 
-// @route   GET api/users
-// @desc    Get all users
-// @access  Public
-router.get('/', getAllUsers); // The 'auth' middleware has been removed from here
+// Define the signup route
+router.post('/signup', registerUser);
 
-// @route   GET api/users/:id
-// @desc    Get user by ID
-// @access  Public
-router.get('/:id', getUserById);
+// Define the login route
+router.post('/login', loginUser);
+// Add the new protected route
+router.get('/me', protect, getUserProfile);
 
 module.exports = router;
