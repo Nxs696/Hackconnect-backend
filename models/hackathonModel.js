@@ -25,17 +25,25 @@ const hackathonSchema = new mongoose.Schema({
     type: String,
   },
   themes: {
-    type: [String], // An array of strings like ["AI", "Blockchain", "HealthTech"]
+    type: [String],
     default: [],
   },
-  // Link this hackathon to the user who created it
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     required: true,
-    ref: 'User', // This creates a reference to the 'User' model
+    ref: 'User',
   },
+  
+  // --- NEW FIELD ADDED HERE ---
+  // This field tracks the event's lifecycle automatically.
+  status: {
+    type: String,
+    enum: ['upcoming', 'ongoing', 'completed'],
+    default: 'upcoming',
+  },
+
 }, {
-  timestamps: true,
+  timestamps: true, // Automatically adds createdAt and updatedAt
 });
 
 module.exports = mongoose.model('Hackathon', hackathonSchema);
