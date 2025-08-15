@@ -5,8 +5,8 @@ const Hackathon = require('../models/hackathonModel');
 
 // --- Zod Schema for Validation ---
 const hackathonSchema = z.object({
-  title: z.string().min(3, 'Title must be at least 3 characters long'),
-  description: z.string().min(10, 'Description must be at least 10 characters long'),
+  title: z.string().min(3, "Title must be at least 3 characters long"),
+  description: z.string().min(10, "Description must be at least 10 characters long"),
   startDate: z.coerce.date(),
   endDate: z.coerce.date(),
   location: z.string().optional(),
@@ -20,9 +20,15 @@ const hackathonSchema = z.object({
  * @access  Public
  */
 const getHackathons = asyncHandler(async (req, res) => {
-  const hackathons = await Hackathon.find({}).populate('createdBy', 'name email');
+  // MODIFIED: Only find hackathons that are NOT 'completed' and sort by start date
+  const hackathons = await Hackathon.find({ status: { $ne: 'completed' } })
+    .sort({ startDate: 'asc' })
+    .populate('createdBy', 'name email');
+    
   res.status(200).json(hackathons);
 });
+
+// --- NO CHANGES NEEDED BELOW THIS LINE ---
 
 /**
  * @desc    Create a new hackathon
@@ -38,8 +44,7 @@ const createHackathon = asyncHandler(async (req, res) => {
   }
 
   const { title, description, startDate, endDate, location, website, themes } = validation.data;
-
-  // Check if end date is before start date
+  
   if (new Date(endDate) < new Date(startDate)) {
     res.status(400);
     throw new Error('End date cannot be before the start date.');
@@ -86,7 +91,6 @@ const getHackathonById = asyncHandler(async (req, res) => {
  * @access  Private
  */
 const updateHackathon = asyncHandler(async (req, res) => {
-  // **ADDED**: Validate incoming data for updates. .partial() makes all fields optional.
   const validation = hackathonSchema.partial().safeParse(req.body);
 
   if (!validation.success) {
@@ -101,7 +105,6 @@ const updateHackathon = asyncHandler(async (req, res) => {
     throw new Error('Hackathon not found');
   }
 
-  // Authorization check: Ensure the logged-in user is the one who created the hackathon
   if (hackathon.createdBy.toString() !== req.user.id) {
     res.status(401);
     throw new Error('User not authorized to update this hackathon');
@@ -109,11 +112,8 @@ const updateHackathon = asyncHandler(async (req, res) => {
 
   const updatedHackathon = await Hackathon.findByIdAndUpdate(
     req.params.id,
-    validation.data, // Use validated data
-    {
-      new: true, // Return the modified document
-      runValidators: true, // Ensure schema validation rules are applied
-    }
+    validation.data,
+    { new: true, runValidators: true }
   );
 
   res.status(200).json(updatedHackathon);
@@ -132,15 +132,11 @@ const deleteHackathon = asyncHandler(async (req, res) => {
     throw new Error('Hackathon not found');
   }
 
-  // **POSSIBLE ERROR SOURCE**: This authorization check is the most likely reason for failure.
-  // Ensure the JWT token you are using in Postman's "Authorization" header belongs
-  // to the same user whose ID is stored in the hackathon's 'createdBy' field.
   if (hackathon.createdBy.toString() !== req.user.id) {
-    res.status(401); // 401 Unauthorized
+    res.status(401);
     throw new Error('User not authorized to delete this hackathon');
   }
 
-  // The deleteOne method is correct. If the check above passes, this will work.
   await hackathon.deleteOne();
 
   res.status(200).json({ id: req.params.id, message: 'Hackathon removed successfully' });

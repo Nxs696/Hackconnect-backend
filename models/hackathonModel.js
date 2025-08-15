@@ -33,17 +33,15 @@ const hackathonSchema = new mongoose.Schema({
     required: true,
     ref: 'User',
   },
-  
-  // --- NEW FIELD ADDED HERE ---
+  // --- NEW FIELD ADDED ---
   // This field tracks the event's lifecycle automatically.
   status: {
     type: String,
     enum: ['upcoming', 'ongoing', 'completed'],
     default: 'upcoming',
   },
-
 }, {
-  timestamps: true, // Automatically adds createdAt and updatedAt
+  timestamps: true,
 });
 
 module.exports = mongoose.model('Hackathon', hackathonSchema);

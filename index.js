@@ -2,22 +2,24 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
+const scheduleHackathonUpdates = require('./src/jobs/hackathonStatusUpdater'); // NEW: Import the job
 
 const PORT = process.env.PORT || 3000;
 
 // Connect to Database
 connectDB();
 
+// Schedule the job to run automatically
+scheduleHackathonUpdates(); // NEW: Start the job
+
 const app = express();
 
 // --- Middlewares ---
 app.use(cors());
-app.use(express.json()); // This line should only be here once
+app.use(express.json());
 
 // --- Routes ---
-// Mounts the user routes on the '/api/users' path
 app.use('/api/users', require('./routes/userRoutes'));
-
 app.use('/api/hackathons', require('./routes/hackathonRoutes'));
 
 // A simple test route for the server's root URL
