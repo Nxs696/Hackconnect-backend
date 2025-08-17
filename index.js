@@ -2,15 +2,14 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
-const scheduleHackathonUpdates = require('./src/jobs/hackathonStatusUpdater'); // NEW: Import the job
+// The cron job starts automatically when this file is imported
+require('./src/jobs/hackathonStatusUpdater'); 
+const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 
 const PORT = process.env.PORT || 3000;
 
 // Connect to Database
 connectDB();
-
-// Schedule the job to run automatically
-scheduleHackathonUpdates(); // NEW: Start the job
 
 const app = express();
 
@@ -26,6 +25,10 @@ app.use('/api/hackathons', require('./routes/hackathonRoutes'));
 app.get('/', (req, res) => {
   res.json({ message: "Welcome to HackConnect API! 🎉" });
 });
+
+// --- Error Handling ---
+app.use(notFound);
+app.use(errorHandler);
 
 // --- Start the Server ---
 app.listen(PORT, () => {
