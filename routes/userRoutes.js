@@ -1,15 +1,19 @@
 const express = require('express');
 const router = express.Router();
-// Update the import to include loginUser
-const { registerUser, loginUser ,  getUserProfile, } = require('../controllers/userController');
+const {
+  registerUser,
+  loginUser,
+  getMe, 
+} = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware');
 
-// Define the signup route
-router.post('/signup', registerUser);
+// Corrected route for user registration
+router.post('/register', registerUser); 
 
-// Define the login route
+// Route for user login
 router.post('/login', loginUser);
-// Add the new protected route
-router.get('/me', protect, getUserProfile);
+
+// Corrected route to get user profile information
+router.get('/me', protect, getMe); 
 
 module.exports = router;

@@ -1,5 +1,5 @@
 const cron = require('node-cron');
-const Hackathon = require('../models/hackathonModel');
+const Hackathon = require('../../models/hackathonModel'); // ✅ fixed path
 
 // This task will run every hour
 const scheduleHackathonUpdates = () => {

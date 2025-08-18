@@ -2,21 +2,18 @@ const express = require('express');
 const router = express.Router();
 const {
   getHackathons,
-  createHackathon,
-  getHackathonById,
+  setHackathon, // Corrected function name
   updateHackathon,
   deleteHackathon,
 } = require('../controllers/hackathonController');
 const { protect } = require('../middleware/authMiddleware');
 
-// Route for /api/hackathons
-router.route('/')
-  .get(getHackathons)
-  .post(protect, createHackathon);
+// Routes for getting all hackathons and creating a new one
+router.route('/').get(getHackathons).post(protect, setHackathon);
 
-// Route for /api/hackathons/:id
-router.route('/:id')
-  .get(getHackathonById)
+// Routes for updating and deleting a specific hackathon
+router
+  .route('/:id')
   .put(protect, updateHackathon)
   .delete(protect, deleteHackathon);
 
