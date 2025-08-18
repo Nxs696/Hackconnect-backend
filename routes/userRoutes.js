@@ -3,17 +3,17 @@ const router = express.Router();
 const {
   registerUser,
   loginUser,
-  getMe, 
+  getMe,
 } = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware');
 
-// Corrected route for user registration
-router.post('/register', registerUser); 
+// User registration
+router.post('/register', registerUser);
 
-// Route for user login
+// User login
 router.post('/login', loginUser);
 
-// Corrected route to get user profile information
-router.get('/me', protect, getMe); 
+// Get user profile
+router.get('/me', protect, getMe);
 
 module.exports = router;

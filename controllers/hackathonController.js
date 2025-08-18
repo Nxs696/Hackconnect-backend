@@ -42,7 +42,7 @@ const createHackathon = asyncHandler(async (req, res) => {
     location: location || 'Online',
     website,
     themes,
-    createdBy: req.user._id, // ✅ tracks who created it
+    createdBy: req.user._id,
   });
 
   res.status(201).json(hackathon);
@@ -57,6 +57,12 @@ const updateHackathon = asyncHandler(async (req, res) => {
   if (!hackathon) {
     res.status(404);
     throw new Error('Hackathon not found');
+  }
+
+  // ✅ AUTHORIZATION CHECK
+  if (hackathon.createdBy.toString() !== req.user.id) {
+    res.status(401);
+    throw new Error('User not authorized to update this hackathon');
   }
 
   const updatedHackathon = await Hackathon.findByIdAndUpdate(req.params.id, req.body, {
@@ -75,6 +81,12 @@ const deleteHackathon = asyncHandler(async (req, res) => {
   if (!hackathon) {
     res.status(404);
     throw new Error('Hackathon not found');
+  }
+
+  // ✅ AUTHORIZATION CHECK
+  if (hackathon.createdBy.toString() !== req.user.id) {
+    res.status(401);
+    throw new Error('User not authorized to delete this hackathon');
   }
 
   await hackathon.deleteOne();

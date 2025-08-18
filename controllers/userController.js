@@ -1,7 +1,21 @@
+const { z } = require('zod');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const asyncHandler = require('express-async-handler');
 const User = require('../models/userModel');
+
+// --- Zod Schemas for Validation ---
+const registerSchema = z.object({
+  name: z.string().min(1, 'Please add a name'),
+  email: z.string().email('Please add a valid email'),
+  password: z.string().min(6, 'Password must be at least 6 characters long'),
+});
+
+const loginSchema = z.object({
+  email: z.string().email('Please add a valid email'),
+  password: z.string().min(1, 'Please add a password'),
+});
+
 
 // Generate JWT
 const generateToken = (id) => {
@@ -9,15 +23,10 @@ const generateToken = (id) => {
 };
 
 // @desc Register a new user
-// @route POST /api/users
+// @route POST /api/users/register
 // @access Public
 const registerUser = asyncHandler(async (req, res) => {
-  const { name, email, password } = req.body;
-
-  if (!name || !email || !password) {
-    res.status(400);
-    throw new Error('Please add all fields');
-  }
+  const { name, email, password } = registerSchema.parse(req.body);
 
   // Check if user exists
   const userExists = await User.findOne({ email });
@@ -26,7 +35,7 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new Error('User already exists');
   }
 
-  // Create user (password will be hashed in schema middleware)
+  // Create user
   const user = await User.create({
     name,
     email,
@@ -50,9 +59,8 @@ const registerUser = asyncHandler(async (req, res) => {
 // @route POST /api/users/login
 // @access Public
 const loginUser = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password } = loginSchema.parse(req.body);
 
-  // Explicitly include password for bcrypt compare
   const user = await User.findOne({ email }).select('+password');
 
   if (user && (await bcrypt.compare(password, user.password))) {
