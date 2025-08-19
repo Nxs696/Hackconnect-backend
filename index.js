@@ -17,7 +17,16 @@ scheduleHackathonUpdates();
 const app = express();
 
 // --- Middlewares ---
-app.use(cors());
+
+// --- CORRECTED CORS CONFIGURATION ---
+const corsOptions = {
+  origin: 'http://localhost:3001', // Your frontend's origin
+  credentials: true, // Allow cookies, authorization headers, etc.
+};
+
+app.use(cors(corsOptions)); // Use the configured cors options
+// ------------------------------------
+
 app.use(express.json());
 
 // --- Routes ---
