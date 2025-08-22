@@ -2,45 +2,49 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
-// Import the scheduler function
 const scheduleHackathonUpdates = require('./src/jobs/hackathonStatusUpdater');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 
 const PORT = process.env.PORT || 3000;
 
-// Connect to Database
+// Connect to the database first
 connectDB();
 
-// Call the function to start the cron job
+// If you have cron jobs, initialize them
 scheduleHackathonUpdates();
 
 const app = express();
 
-// --- Middlewares ---
+// --- Essential Middlewares ---
 
-// --- CORRECTED CORS CONFIGURATION ---
+// 1. CORS: Handles cross-origin requests from your frontend
 const corsOptions = {
-  origin: 'http://localhost:3001', // Your frontend's origin
-  credentials: true, // Allow cookies, authorization headers, etc.
+  origin: 'http://localhost:3001', // Your React app's URL
+  credentials: true,
 };
+app.use(cors(corsOptions));
 
-app.use(cors(corsOptions)); // Use the configured cors options
-// ------------------------------------
-
+// 2. Body Parsers: Allow the server to read JSON and URL-encoded data from requests
 app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
-// --- Routes ---
+
+// --- API Routes ---
+// All user-related routes will be prefixed with /api/users
 app.use('/api/users', require('./routes/userRoutes'));
+// All hackathon-related routes will be prefixed with /api/hackathons
 app.use('/api/hackathons', require('./routes/hackathonRoutes'));
 
-// A simple test route for the server's root URL
+// A simple welcome route for the root URL
 app.get('/', (req, res) => {
   res.json({ message: 'Welcome to HackConnect API! 🎉' });
 });
 
-// --- Error Handling ---
+
+// --- Error Handling Middlewares (must be last) ---
 app.use(notFound);
 app.use(errorHandler);
+
 
 // --- Start the Server ---
 app.listen(PORT, () => {

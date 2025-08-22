@@ -4,20 +4,21 @@ const {
   registerUser,
   loginUser,
   getMe,
-  updateUserProfile, // Import the new controller
+  updateUserProfile,
 } = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware');
 
 // User registration
+// Path: POST /api/users/register
 router.post('/register', registerUser);
 
 // User login
+// Path: POST /api/users/login
 router.post('/login', loginUser);
 
-// Get user profile
-router.get('/me', protect, getMe);
-
-// UPDATE THIS ROUTE
+// Get and Update user profile
+// GET Path: /api/users/me
+// PUT Path: /api/users/me
 router.route('/me').get(protect, getMe).put(protect, updateUserProfile);
 
 module.exports = router;
