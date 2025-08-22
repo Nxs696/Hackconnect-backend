@@ -18,6 +18,38 @@ const userSchema = mongoose.Schema(
       minlength: 6,
       select: false, // important for login
     },
+    profilePicture: {
+      type: String,
+      default: 'https://randomuser.me/api/portraits/lego/1.jpg',
+    },
+    bio: {
+      type: String,
+      default: '',
+      maxlength: 500,
+    },
+    status: {
+      type: String,
+      enum: ['available', 'not-available'],
+      default: 'available',
+    },
+    achievements: {
+      type: String,
+      default: '',
+    },
+    skills: {
+      type: [String],
+      default: [],
+    },
+    socialLinks: {
+      linkedin: { type: String, default: '' },
+      github: { type: String, default: '' },
+      portfolio: { type: String, default: '' },
+    },
+    projects: {
+        type: [String],
+        default: [],
+    }
+
   },
   {
     timestamps: true,

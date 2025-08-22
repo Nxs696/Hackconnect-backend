@@ -83,8 +83,47 @@ const getMe = asyncHandler(async (req, res) => {
   res.status(200).json(req.user);
 });
 
+const updateUserProfile = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+
+  if (user) {
+    user.name = req.body.name || user.name;
+    user.email = req.body.email || user.email;
+    user.profilePicture = req.body.profilePicture || user.profilePicture;
+    user.bio = req.body.bio || user.bio;
+    user.status = req.body.status || user.status;
+    user.achievements = req.body.achievements || user.achievements;
+    user.skills = req.body.skills || user.skills;
+    user.socialLinks = req.body.socialLinks || user.socialLinks;
+    user.projects = req.body.projects || user.projects;
+
+    if (req.body.password) {
+      user.password = req.body.password;
+    }
+
+    const updatedUser = await user.save();
+
+    res.json({
+      _id: updatedUser._id,
+      name: updatedUser.name,
+      email: updatedUser.email,
+      profilePicture: updatedUser.profilePicture,
+      bio: updatedUser.bio,
+      status: updatedUser.status,
+      achievements: updatedUser.achievements,
+      skills: updatedUser.skills,
+      socialLinks: updatedUser.socialLinks,
+      projects: updatedUser.projects,
+    });
+  } else {
+    res.status(404);
+    throw new Error('User not found');
+  }
+});
+
 module.exports = {
   registerUser,
   loginUser,
   getMe,
+  updateUserProfile,
 };
