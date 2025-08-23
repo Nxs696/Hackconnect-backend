@@ -1,52 +1,47 @@
 require('dotenv').config();
-const express = require('express');
+const express = require('express'); // This line is correct
+const http = require('http');
+const { Server } = require("socket.io");
 const cors = require('cors');
 const connectDB = require('./config/db');
-const scheduleHackathonUpdates = require('./src/jobs/hackathonStatusUpdater');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
+const fetchHackathonsFromAPI = require('./src/jobs/apiFetcher'); 
 
 const PORT = process.env.PORT || 3000;
 
-// Connect to the database first
 connectDB();
 
-// If you have cron jobs, initialize them
-scheduleHackathonUpdates();
-
-const app = express();
-
-// --- Essential Middlewares ---
-
-// 1. CORS: Handles cross-origin requests from your frontend
-const corsOptions = {
-  origin: 'http://localhost:3001', // Your React app's URL
-  credentials: true,
-};
-app.use(cors(corsOptions));
-
-// 2. Body Parsers: Allow the server to read JSON and URL-encoded data from requests
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-
-
-// --- API Routes ---
-// All user-related routes will be prefixed with /api/users
-app.use('/api/users', require('./routes/userRoutes'));
-// All hackathon-related routes will be prefixed with /api/hackathons
-app.use('/api/hackathons', require('./routes/hackathonRoutes'));
-
-// A simple welcome route for the root URL
-app.get('/', (req, res) => {
-  res.json({ message: 'Welcome to HackConnect API! 🎉' });
+const app = express(); // <-- THIS WAS THE LINE WITH THE TYPO
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:3001",
+    methods: ["GET", "POST"]
+  }
 });
 
+app.set('socketio', io);
 
-// --- Error Handling Middlewares (must be last) ---
+io.on('connection', (socket) => {
+  console.log('A user connected');
+  socket.on('disconnect', () => {
+    console.log('user disconnected');
+  });
+});
+
+// Middlewares and Routes
+app.use(cors({ origin: 'http://localhost:3001', credentials: true }));
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ limit: '5mb', extended: true }));
+app.use('/api/users', require('./routes/userRoutes'));
+app.use('/api/hackathons', require('./routes/hackathonRoutes'));
 app.use(notFound);
 app.use(errorHandler);
 
-
-// --- Start the Server ---
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`🚀 Server is running on http://localhost:${PORT}`);
 });
+
+// --- MANUAL TEST ---
+console.log("Attempting to run API fetcher manually for testing...");
+fetchHackathonsFromAPI(io);

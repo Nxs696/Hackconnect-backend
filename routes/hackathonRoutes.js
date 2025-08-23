@@ -1,21 +1,23 @@
 const express = require('express');
 const router = express.Router();
+// --- THIS IS THE FIX ---
+// Ensure all the required functions are imported correctly from the controller file.
 const {
-  getHackathons,
+  getAllHackathons,
   getHackathonById,
   createHackathon,
   updateHackathon,
   deleteHackathon,
 } = require('../controllers/hackathonController');
+// ----------------------
 const { protect } = require('../middleware/authMiddleware');
 
-// Routes for getting all hackathons and creating a new one
-router.route('/').get(getHackathons).post(protect, createHackathon);
+// The router was trying to use 'getAllHackathons', but it was undefined because of the faulty import.
+router.route('/').get(getAllHackathons).post(protect, createHackathon);
 
-// Routes for a specific hackathon
 router
   .route('/:id')
-  .get(getHackathonById) // ✅ added
+  .get(getHackathonById)
   .put(protect, updateHackathon)
   .delete(protect, deleteHackathon);
 

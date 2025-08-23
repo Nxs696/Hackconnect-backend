@@ -1,11 +1,20 @@
 const asyncHandler = require('express-async-handler');
 const Hackathon = require('../models/hackathonModel');
 
-// @desc    Get all hackathons
+// @desc    Get all hackathons with search and sorting
 // @route   GET /api/hackathons
 // @access  Public
-const getHackathons = asyncHandler(async (req, res) => {
-  const hackathons = await Hackathon.find({});
+const getAllHackathons = asyncHandler(async (req, res) => { // <-- RENAMED THIS FUNCTION
+  const keyword = req.query.search
+    ? {
+        $or: [
+          { title: { $regex: req.query.search, $options: 'i' } },
+          { description: { $regex: req.query.search, $options: 'i' } },
+        ],
+      }
+    : {};
+
+  const hackathons = await Hackathon.find({ ...keyword }).sort({ startDate: 'asc' });
   res.json(hackathons);
 });
 
@@ -59,7 +68,6 @@ const updateHackathon = asyncHandler(async (req, res) => {
     throw new Error('Hackathon not found');
   }
 
-  // ✅ AUTHORIZATION CHECK
   if (hackathon.createdBy.toString() !== req.user.id) {
     res.status(401);
     throw new Error('User not authorized to update this hackathon');
@@ -83,7 +91,6 @@ const deleteHackathon = asyncHandler(async (req, res) => {
     throw new Error('Hackathon not found');
   }
 
-  // ✅ AUTHORIZATION CHECK
   if (hackathon.createdBy.toString() !== req.user.id) {
     res.status(401);
     throw new Error('User not authorized to delete this hackathon');
@@ -94,7 +101,7 @@ const deleteHackathon = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
-  getHackathons,
+  getAllHackathons, // <-- UPDATED THE EXPORT NAME
   getHackathonById,
   createHackathon,
   updateHackathon,

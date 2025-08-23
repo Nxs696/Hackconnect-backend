@@ -1,3 +1,5 @@
+// In your backend's controllers/userController.js
+
 const { z } = require('zod');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
@@ -28,14 +30,12 @@ const generateToken = (id) => {
 const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password } = registerSchema.parse(req.body);
 
-  // Check if user exists
   const userExists = await User.findOne({ email });
   if (userExists) {
     res.status(400);
     throw new Error('User already exists');
   }
 
-  // Create user
   const user = await User.create({
     name,
     email,
@@ -43,10 +43,18 @@ const registerUser = asyncHandler(async (req, res) => {
   });
 
   if (user) {
+    // --- FIX: Send the full user object ---
     res.status(201).json({
       _id: user.id,
       name: user.name,
       email: user.email,
+      profilePicture: user.profilePicture,
+      bio: user.bio,
+      status: user.status,
+      achievements: user.achievements,
+      skills: user.skills,
+      socialLinks: user.socialLinks,
+      projects: user.projects,
       token: generateToken(user._id),
     });
   } else {
@@ -64,10 +72,18 @@ const loginUser = asyncHandler(async (req, res) => {
   const user = await User.findOne({ email }).select('+password');
 
   if (user && (await bcrypt.compare(password, user.password))) {
+    // --- FIX: Send the full user object ---
     res.json({
       _id: user.id,
       name: user.name,
       email: user.email,
+      profilePicture: user.profilePicture,
+      bio: user.bio,
+      status: user.status,
+      achievements: user.achievements,
+      skills: user.skills,
+      socialLinks: user.socialLinks,
+      projects: user.projects,
       token: generateToken(user._id),
     });
   } else {
@@ -83,6 +99,9 @@ const getMe = asyncHandler(async (req, res) => {
   res.status(200).json(req.user);
 });
 
+// @desc Update user profile
+// @route PUT /api/users/me
+// @access Private
 const updateUserProfile = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
 
@@ -93,9 +112,14 @@ const updateUserProfile = asyncHandler(async (req, res) => {
     user.bio = req.body.bio || user.bio;
     user.status = req.body.status || user.status;
     user.achievements = req.body.achievements || user.achievements;
-    user.skills = req.body.skills || user.skills;
     user.socialLinks = req.body.socialLinks || user.socialLinks;
     user.projects = req.body.projects || user.projects;
+
+    if (req.body.skills && typeof req.body.skills === 'string') {
+      user.skills = req.body.skills.split(',').map(skill => skill.trim());
+    } else {
+      user.skills = req.body.skills || user.skills;
+    }
 
     if (req.body.password) {
       user.password = req.body.password;
