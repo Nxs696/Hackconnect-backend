@@ -1,7 +1,7 @@
 const asyncHandler = require('express-async-handler');
 const User = require('../models/userModel');
 const Connection = require('../models/connectionModel');
-const generateToken = require('../utils/generateToken');
+const generateToken = require('../utils/generatetoken');
 const bcrypt = require('bcryptjs');
 
 // User Registration
@@ -49,9 +49,8 @@ const authUser = asyncHandler(async (req, res) => {
 
 // Get User Profile (Private)
 const getUserProfile = asyncHandler(async (req, res) => {
-  // The user object is already attached by the 'protect' middleware.
-  // No need to find it again.
-  res.json(req.user); 
+  // The 'protect' middleware guarantees req.user exists, so we can just send it.
+  res.json(req.user);
 });
 
 // Update User Profile
@@ -74,7 +73,6 @@ const updateUserProfile = asyncHandler(async (req, res) => {
     user.achievements = req.body.achievements || user.achievements;
     user.socialLinks = req.body.socialLinks || user.socialLinks;
     user.status = req.body.status || user.status;
-
 
     const updatedUser = await user.save();
     res.json(updatedUser);
@@ -103,7 +101,7 @@ const getPublicProfile = asyncHandler(async (req, res) => {
     }
   });
 
-  // POST send a connection request
+// POST send a connection request
 const sendConnectionRequest = asyncHandler(async (req, res) => {
     const { to } = req.body;
     const from = req.user._id;
@@ -174,8 +172,6 @@ const rejectConnectionRequest = asyncHandler(async (req, res) => {
         throw new Error('Request not found or you are not authorized to reject it.');
     }
 
-    // Instead of deleting, you might want to set status to 'rejected'
-    // and then have a cleanup job, but for simplicity, we'll remove it.
     await Connection.findByIdAndRemove(requestId);
 
     // Also remove from sent/received arrays
