@@ -1,3 +1,5 @@
+// middleware/authMiddleware.js
+
 const jwt = require('jsonwebtoken');
 const asyncHandler = require('express-async-handler');
 const User = require('../models/userModel.js');
@@ -18,6 +20,12 @@ const protect = asyncHandler(async (req, res, next) => {
 
       // Get user from the token
       req.user = await User.findById(decoded.id).select('-password');
+
+      // ✅ --- ADD THIS CHECK --- ✅
+      if (!req.user) {
+        res.status(401);
+        throw new Error('Not authorized, user not found');
+      }
 
       next();
     } catch (error) {

@@ -2,6 +2,7 @@ const asyncHandler = require('express-async-handler');
 const User = require('../models/userModel');
 const Connection = require('../models/connectionModel');
 const generateToken = require('../utils/generateToken');
+const bcrypt = require('bcryptjs');
 
 // User Registration
 const registerUser = asyncHandler(async (req, res) => {
@@ -48,13 +49,9 @@ const authUser = asyncHandler(async (req, res) => {
 
 // Get User Profile (Private)
 const getUserProfile = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user._id);
-  if (user) {
-    res.json(user);
-  } else {
-    res.status(404);
-    throw new Error('User not found');
-  }
+  // The user object is already attached by the 'protect' middleware.
+  // No need to find it again.
+  res.json(req.user); 
 });
 
 // Update User Profile
@@ -65,7 +62,8 @@ const updateUserProfile = asyncHandler(async (req, res) => {
     user.name = req.body.name || user.name;
     user.email = req.body.email || user.email;
     if (req.body.password) {
-      user.password = req.body.password;
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(req.body.password, salt);
     }
     // Update additional fields
     user.profilePicture = req.body.profilePicture || user.profilePicture;
