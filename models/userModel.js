@@ -1,69 +1,65 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-const userSchema = mongoose.Schema(
-  {
-    name: {
-      type: String,
-      required: [true, 'Please add a name'],
-    },
-    email: {
-      type: String,
-      required: [true, 'Please add an email'],
-      unique: true,
-    },
-    password: {
-      type: String,
-      required: [true, 'Please add a password'],
-      minlength: 6,
-      select: false, // important for login
-    },
-    profilePicture: {
-      type: String,
-      default: 'https://randomuser.me/api/portraits/lego/1.jpg',
-    },
-    bio: {
-      type: String,
-      default: '',
-      maxlength: 500,
-    },
-    status: {
-      type: String,
-      enum: ['available', 'not-available'],
-      default: 'available',
-    },
-    achievements: {
-      type: String,
-      default: '',
-    },
-    skills: {
-      type: [String],
-      default: [],
-    },
-    socialLinks: {
-      linkedin: { type: String, default: '' },
-      github: { type: String, default: '' },
-      portfolio: { type: String, default: '' },
-    },
-    projects: {
-        type: [String],
-        default: [],
-    }
-
+const userSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
   },
-  {
-    timestamps: true,
-  }
-);
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+  },
+  password: {
+    type: String,
+    required: true,
+  },
+  profilePicture: {
+    type: String,
+    default: 'https://i.pravatar.cc/150',
+  },
+  college: String,
+  branch: String,
+  skills: [String],
+  bio: String,
+  achievements: String,
+  socialLinks: {
+    linkedin: String,
+    github: String,
+    portfolio: String,
+  },
+  status: {
+    type: String,
+    enum: ['available', 'in a team'],
+    default: 'available',
+  },
+  connections: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  sentRequests: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Connection'
+  }],
+  receivedRequests: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Connection'
+  }],
+}, {
+  timestamps: true,
+});
 
-// Hash password before saving
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) {
     return next();
   }
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
-  next();
 });
+
+userSchema.methods.matchPassword = async function (enteredPassword) {
+  return await bcrypt.compare(enteredPassword, this.password);
+};
 
 module.exports = mongoose.model('User', userSchema);

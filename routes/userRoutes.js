@@ -2,23 +2,27 @@ const express = require('express');
 const router = express.Router();
 const {
   registerUser,
-  loginUser,
-  getMe,
+  authUser,
+  getUserProfile,
   updateUserProfile,
+  getAllUsers,
+  getPublicProfile,
+  sendConnectionRequest,
+  acceptConnectionRequest,
+  rejectConnectionRequest,
 } = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware');
 
-// User registration
-// Path: POST /api/users/register
-router.post('/register', registerUser);
+router.route('/').post(registerUser).get(protect, getAllUsers);
+router.post('/login', authUser);
+router.route('/profile').get(protect, getUserProfile).put(protect, updateUserProfile);
+router.route('/:id').get(getPublicProfile);
 
-// User login
-// Path: POST /api/users/login
-router.post('/login', loginUser);
 
-// Get and Update user profile
-// GET Path: /api/users/me
-// PUT Path: /api/users/me
-router.route('/me').get(protect, getMe).put(protect, updateUserProfile);
+// Connection Requests
+router.post('/request', protect, sendConnectionRequest);
+router.post('/request/accept', protect, acceptConnectionRequest);
+router.post('/request/reject', protect, rejectConnectionRequest);
+
 
 module.exports = router;

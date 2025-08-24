@@ -1,60 +1,25 @@
-// In your backend's controllers/userController.js
-
-const { z } = require('zod');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
 const asyncHandler = require('express-async-handler');
 const User = require('../models/userModel');
+const Connection = require('../models/connectionModel');
+const generateToken = require('../utils/generateToken');
 
-// --- Zod Schemas for Validation ---
-const registerSchema = z.object({
-  name: z.string().min(1, 'Please add a name'),
-  email: z.string().email('Please add a valid email'),
-  password: z.string().min(6, 'Password must be at least 6 characters long'),
-});
-
-const loginSchema = z.object({
-  email: z.string().email('Please add a valid email'),
-  password: z.string().min(1, 'Please add a password'),
-});
-
-
-// Generate JWT
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
-};
-
-// @desc Register a new user
-// @route POST /api/users/register
-// @access Public
+// User Registration
 const registerUser = asyncHandler(async (req, res) => {
-  const { name, email, password } = registerSchema.parse(req.body);
-
+  const { name, email, password } = req.body;
   const userExists = await User.findOne({ email });
+
   if (userExists) {
     res.status(400);
     throw new Error('User already exists');
   }
 
-  const user = await User.create({
-    name,
-    email,
-    password,
-  });
+  const user = await User.create({ name, email, password });
 
   if (user) {
-    // --- FIX: Send the full user object ---
     res.status(201).json({
-      _id: user.id,
+      _id: user._id,
       name: user.name,
       email: user.email,
-      profilePicture: user.profilePicture,
-      bio: user.bio,
-      status: user.status,
-      achievements: user.achievements,
-      skills: user.skills,
-      socialLinks: user.socialLinks,
-      projects: user.projects,
       token: generateToken(user._id),
     });
   } else {
@@ -63,91 +28,175 @@ const registerUser = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc Authenticate a user
-// @route POST /api/users/login
-// @access Public
-const loginUser = asyncHandler(async (req, res) => {
-  const { email, password } = loginSchema.parse(req.body);
+// User Authentication
+const authUser = asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
+  const user = await User.findOne({ email });
 
-  const user = await User.findOne({ email }).select('+password');
-
-  if (user && (await bcrypt.compare(password, user.password))) {
-    // --- FIX: Send the full user object ---
+  if (user && (await user.matchPassword(password))) {
     res.json({
-      _id: user.id,
+      _id: user._id,
       name: user.name,
       email: user.email,
-      profilePicture: user.profilePicture,
-      bio: user.bio,
-      status: user.status,
-      achievements: user.achievements,
-      skills: user.skills,
-      socialLinks: user.socialLinks,
-      projects: user.projects,
       token: generateToken(user._id),
     });
   } else {
     res.status(401);
-    throw new Error('Invalid credentials');
+    throw new Error('Invalid email or password');
   }
 });
 
-// @desc Get user data
-// @route GET /api/users/me
-// @access Private
-const getMe = asyncHandler(async (req, res) => {
-  res.status(200).json(req.user);
-});
-
-// @desc Update user profile
-// @route PUT /api/users/me
-// @access Private
-const updateUserProfile = asyncHandler(async (req, res) => {
+// Get User Profile (Private)
+const getUserProfile = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
-
   if (user) {
-    user.name = req.body.name || user.name;
-    user.email = req.body.email || user.email;
-    user.profilePicture = req.body.profilePicture || user.profilePicture;
-    user.bio = req.body.bio || user.bio;
-    user.status = req.body.status || user.status;
-    user.achievements = req.body.achievements || user.achievements;
-    user.socialLinks = req.body.socialLinks || user.socialLinks;
-    user.projects = req.body.projects || user.projects;
-
-    if (req.body.skills && typeof req.body.skills === 'string') {
-      user.skills = req.body.skills.split(',').map(skill => skill.trim());
-    } else {
-      user.skills = req.body.skills || user.skills;
-    }
-
-    if (req.body.password) {
-      user.password = req.body.password;
-    }
-
-    const updatedUser = await user.save();
-
-    res.json({
-      _id: updatedUser._id,
-      name: updatedUser.name,
-      email: updatedUser.email,
-      profilePicture: updatedUser.profilePicture,
-      bio: updatedUser.bio,
-      status: updatedUser.status,
-      achievements: updatedUser.achievements,
-      skills: updatedUser.skills,
-      socialLinks: updatedUser.socialLinks,
-      projects: updatedUser.projects,
-    });
+    res.json(user);
   } else {
     res.status(404);
     throw new Error('User not found');
   }
 });
 
+// Update User Profile
+const updateUserProfile = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+
+  if (user) {
+    user.name = req.body.name || user.name;
+    user.email = req.body.email || user.email;
+    if (req.body.password) {
+      user.password = req.body.password;
+    }
+    // Update additional fields
+    user.profilePicture = req.body.profilePicture || user.profilePicture;
+    user.college = req.body.college || user.college;
+    user.branch = req.body.branch || user.branch;
+    user.skills = req.body.skills || user.skills;
+    user.bio = req.body.bio || user.bio;
+    user.achievements = req.body.achievements || user.achievements;
+    user.socialLinks = req.body.socialLinks || user.socialLinks;
+    user.status = req.body.status || user.status;
+
+
+    const updatedUser = await user.save();
+    res.json(updatedUser);
+  } else {
+    res.status(404);
+    throw new Error('User not found');
+  }
+});
+
+
+// Get All Users (for Team Maker page)
+const getAllUsers = asyncHandler(async (req, res) => {
+    const users = await User.find({ _id: { $ne: req.user._id } }).select('-password');
+    res.json(users);
+  });
+
+
+// GET a user's public profile
+const getPublicProfile = asyncHandler(async (req, res) => {
+    const user = await User.findById(req.params.id).select('-password');
+    if (user) {
+      res.json(user);
+    } else {
+      res.status(404);
+      throw new Error('User not found');
+    }
+  });
+
+  // POST send a connection request
+const sendConnectionRequest = asyncHandler(async (req, res) => {
+    const { to } = req.body;
+    const from = req.user._id;
+
+    if (to === from.toString()) {
+        res.status(400);
+        throw new Error("You can't send a request to yourself.");
+    }
+
+    const existingConnection = await Connection.findOne({
+        $or: [
+            { from, to },
+            { from: to, to: from }
+        ]
+    });
+
+    if (existingConnection) {
+        res.status(400);
+        throw new Error('Connection request already sent or you are already connected.');
+    }
+
+    const connection = new Connection({ from, to });
+    await connection.save();
+
+    await User.findByIdAndUpdate(from, { $push: { sentRequests: connection._id } });
+    await User.findByIdAndUpdate(to, { $push: { receivedRequests: connection._id } });
+
+    res.status(201).json({ message: 'Connection request sent.' });
+});
+
+// POST accept a connection request
+const acceptConnectionRequest = asyncHandler(async (req, res) => {
+    const { requestId } = req.body;
+    const userId = req.user._id;
+
+    const request = await Connection.findById(requestId);
+
+    if (!request || request.to.toString() !== userId.toString()) {
+        res.status(404);
+        throw new Error('Request not found or you are not authorized to accept it.');
+    }
+
+    request.status = 'accepted';
+    await request.save();
+
+    // Add each user to the other's connections list
+    await User.findByIdAndUpdate(request.from, { $push: { connections: request.to } });
+    await User.findByIdAndUpdate(request.to, { $push: { connections: request.from } });
+
+    // Remove the request from sent/received lists
+    await User.findByIdAndUpdate(request.from, { $pull: { sentRequests: requestId } });
+    await User.findByIdAndUpdate(request.to, { $pull: { receivedRequests: requestId } });
+
+
+    res.json({ message: 'Connection request accepted.' });
+});
+
+
+// POST reject a connection request
+const rejectConnectionRequest = asyncHandler(async (req, res) => {
+    const { requestId } = req.body;
+    const userId = req.user._id;
+
+    const request = await Connection.findById(requestId);
+
+    if (!request || request.to.toString() !== userId.toString()) {
+        res.status(404);
+        throw new Error('Request not found or you are not authorized to reject it.');
+    }
+
+    // Instead of deleting, you might want to set status to 'rejected'
+    // and then have a cleanup job, but for simplicity, we'll remove it.
+    await Connection.findByIdAndRemove(requestId);
+
+    // Also remove from sent/received arrays
+    await User.findByIdAndUpdate(request.from, { $pull: { sentRequests: requestId } });
+    await User.findByIdAndUpdate(request.to, { $pull: { receivedRequests: requestId } });
+
+
+    res.json({ message: 'Connection request rejected.' });
+});
+
+
 module.exports = {
   registerUser,
-  loginUser,
-  getMe,
+  authUser,
+  getUserProfile,
   updateUserProfile,
+  getAllUsers,
+  getPublicProfile,
+  sendConnectionRequest,
+  acceptConnectionRequest,
+  rejectConnectionRequest,
 };
