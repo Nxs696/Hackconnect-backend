@@ -1,3 +1,5 @@
+// HACKCONNECT-BACKEND/middleware/authMiddleware.js (Corrected Version)
+
 const jwt = require('jsonwebtoken');
 const asyncHandler = require('express-async-handler');
 const User = require('../models/userModel.js');
@@ -17,7 +19,7 @@ const protect = asyncHandler(async (req, res, next) => {
       // 3. Verify the token using your secret key
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      // 4. Find the user by the ID stored in the token and attach them to the request
+      // 4. Find the user by the ID stored in the token and attach to the request
       // We exclude the password from the user object
       req.user = await User.findById(decoded.id).select('-password');
       
@@ -27,7 +29,8 @@ const protect = asyncHandler(async (req, res, next) => {
         throw new Error('Not authorized, user not found');
       }
 
-      next(); // If everything is successful, proceed to the next middleware/route
+      next(); // If everything is successful, proceed to the next route
+      return; // Stop the function here
     } catch (error) {
       // This will catch errors from jwt.verify (e.g., token expired, invalid signature)
       res.status(401);
@@ -35,7 +38,7 @@ const protect = asyncHandler(async (req, res, next) => {
     }
   }
 
-  // 5. If the loop completes and no token was found in the header at all
+  // 5. If the 'if' block was skipped, it means no token was found in the header
   if (!token) {
     res.status(401);
     throw new Error('Not authorized, no token');
