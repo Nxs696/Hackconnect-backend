@@ -1,21 +1,23 @@
 require('dotenv').config();
-const express = require('express'); // This line is correct
+const express = require('express');
 const http = require('http');
 const { Server } = require("socket.io");
 const cors = require('cors');
 const connectDB = require('./config/db');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
-const fetchHackathonsFromAPI = require('./src/jobs/apiFetcher'); 
+const fetchHackathonsFromAPI = require('./src/jobs/apiFetcher');
 
+// Your backend will run on the port specified in .env, likely 3000
 const PORT = process.env.PORT || 3000;
 
 connectDB();
 
-const app = express(); // <-- THIS WAS THE LINE WITH THE TYPO
+const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3001",
+    // ✅ CORRECTED: Allow your frontend origin
+    origin: "http://localhost:3001", 
     methods: ["GET", "POST"]
   }
 });
@@ -29,12 +31,18 @@ io.on('connection', (socket) => {
   });
 });
 
-// Middlewares and Routes
+// --- MIDDLEWARE SETUP ---
+// ✅ CORRECTED: Allow your frontend origin and send credentials
 app.use(cors({ origin: 'http://localhost:3001', credentials: true }));
+
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ limit: '5mb', extended: true }));
+
+// --- API ROUTES ---
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/hackathons', require('./routes/hackathonRoutes'));
+
+// --- ERROR HANDLING ---
 app.use(notFound);
 app.use(errorHandler);
 
