@@ -7,14 +7,22 @@ const bcrypt = require('bcryptjs');
 // User Registration
 const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
-  const userExists = await User.findOne({ email });
+
+  // 1. Normalize the email to lowercase before checking
+  const lowerCaseEmail = email.toLowerCase();
+  const userExists = await User.findOne({ email: lowerCaseEmail });
 
   if (userExists) {
     res.status(400);
-    throw new Error('User already exists');
+    throw new Error('User with this email already exists');
   }
 
-  const user = await User.create({ name, email, password });
+  // 2. Create the new user with the normalized email
+  const user = await User.create({
+    name,
+    email: lowerCaseEmail,
+    password,
+  });
 
   if (user) {
     res.status(201).json({
@@ -32,7 +40,10 @@ const registerUser = asyncHandler(async (req, res) => {
 // User Authentication
 const authUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
-  const user = await User.findOne({ email });
+
+  // Normalize the email to lowercase for login
+  const lowerCaseEmail = email.toLowerCase();
+  const user = await User.findOne({ email: lowerCaseEmail });
 
   if (user && (await user.matchPassword(password))) {
     res.json({
