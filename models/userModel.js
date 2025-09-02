@@ -1,65 +1,48 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-const userSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
+const userSchema = mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: [true, 'Please add a name'],
+    },
+    email: {
+      type: String,
+      required: [true, 'Please add an email'],
+      unique: true,
+    },
+    password: {
+      type: String,
+      required: [true, 'Please add a password'],
+    },
+    role: {
+      type: String,
+      enum: ['developer', 'organizer', 'mentor'],
+      default: 'developer',
+    },
+    skills: [String],
+    interests: [String],
+    connections: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   },
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  password: {
-    type: String,
-    required: true,
-  },
-  profilePicture: {
-    type: String,
-    default: 'https://i.pravatar.cc/150',
-  },
-  college: String,
-  branch: String,
-  skills: [String],
-  bio: String,
-  achievements: String,
-  socialLinks: {
-    linkedin: String,
-    github: String,
-    portfolio: String,
-  },
-  status: {
-    type: String,
-    enum: ['available', 'in a team'],
-    default: 'available',
-  },
-  connections: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  }],
-  sentRequests: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Connection'
-  }],
-  receivedRequests: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Connection'
-  }],
-}, {
-  timestamps: true,
-});
-
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) {
-    return next();
+  {
+    timestamps: true,
   }
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
-});
+);
 
+// Match user entered password to hashed password in database
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
+
+// Encrypt password using bcrypt
+userSchema.pre('save', async function (next) {
+  if (!this.isModified('password')) {
+    next();
+  }
+
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+});
 
 module.exports = mongoose.model('User', userSchema);

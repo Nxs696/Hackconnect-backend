@@ -1,26 +1,45 @@
-const asyncHandler = require('express-async-handler');
-const User = require('../models/userModel');
-const Connection = require('../models/connectionModel');
+const asyncHandler = require("express-async-handler");
+const User = require("../models/userModel");
 const generateToken = require('../utils/generatetoken');
-const bcrypt = require('bcryptjs');
 
-// User Registration
+// @desc    Auth user & get token
+// @route   POST /api/users/login
+// @access  Public
+const authUser = asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
+
+  const user = await User.findOne({ email });
+
+  if (user && (await user.matchPassword(password))) {
+    res.json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      isAdmin: user.isAdmin,
+      token: generateToken(user._id),
+    });
+  } else {
+    res.status(401);
+    throw new Error("Invalid email or password");
+  }
+});
+
+// @desc    Register a new user
+// @route   POST /api/users
+// @access  Public
 const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
 
-  // 1. Normalize the email to lowercase before checking
-  const lowerCaseEmail = email.toLowerCase();
-  const userExists = await User.findOne({ email: lowerCaseEmail });
+  const userExists = await User.findOne({ email });
 
   if (userExists) {
     res.status(400);
-    throw new Error('User with this email already exists');
+    throw new Error("User already exists");
   }
 
-  // 2. Create the new user with the normalized email
   const user = await User.create({
     name,
-    email: lowerCaseEmail,
+    email,
     password,
   });
 
@@ -29,42 +48,37 @@ const registerUser = asyncHandler(async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
+      isAdmin: user.isAdmin,
       token: generateToken(user._id),
     });
   } else {
     res.status(400);
-    throw new Error('Invalid user data');
+    throw new Error("Invalid user data");
   }
 });
 
-// User Authentication
-const authUser = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+// @desc    Get user profile
+// @route   GET /api/users/profile
+// @access  Private
+const getUserProfile = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
 
-  // Normalize the email to lowercase for login
-  const lowerCaseEmail = email.toLowerCase();
-  const user = await User.findOne({ email: lowerCaseEmail });
-
-  if (user && (await user.matchPassword(password))) {
+  if (user) {
     res.json({
       _id: user._id,
       name: user.name,
       email: user.email,
-      token: generateToken(user._id),
+      isAdmin: user.isAdmin,
     });
   } else {
-    res.status(401);
-    throw new Error('Invalid email or password');
+    res.status(404);
+    throw new Error("User not found");
   }
 });
 
-// Get User Profile (Private)
-const getUserProfile = asyncHandler(async (req, res) => {
-  // The 'protect' middleware guarantees req.user exists, so we can just send it.
-  res.json(req.user);
-});
-
-// Update User Profile
+// @desc    Update user profile
+// @route   PUT /api/users/profile
+// @access  Private
 const updateUserProfile = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
 
@@ -72,136 +86,93 @@ const updateUserProfile = asyncHandler(async (req, res) => {
     user.name = req.body.name || user.name;
     user.email = req.body.email || user.email;
     if (req.body.password) {
-      const salt = await bcrypt.genSalt(10);
-      user.password = await bcrypt.hash(req.body.password, salt);
+      user.password = req.body.password;
     }
-    // Update additional fields
-    user.profilePicture = req.body.profilePicture || user.profilePicture;
-    user.college = req.body.college || user.college;
-    user.branch = req.body.branch || user.branch;
-    user.skills = req.body.skills || user.skills;
-    user.bio = req.body.bio || user.bio;
-    user.achievements = req.body.achievements || user.achievements;
-    user.socialLinks = req.body.socialLinks || user.socialLinks;
-    user.status = req.body.status || user.status;
 
     const updatedUser = await user.save();
-    res.json(updatedUser);
+
+    res.json({
+      _id: updatedUser._id,
+      name: updatedUser.name,
+      email: updatedUser.email,
+      isAdmin: updatedUser.isAdmin,
+      token: generateToken(updatedUser._id),
+    });
   } else {
     res.status(404);
-    throw new Error('User not found');
+    throw new Error("User not found");
   }
 });
 
+// @desc    Get all users
+// @route   GET /api/users
+// @access  Private/Admin
+const getUsers = asyncHandler(async (req, res) => {
+  const users = await User.find({});
+  res.json(users);
+});
 
-// Get All Users (for Team Maker page)
-const getAllUsers = asyncHandler(async (req, res) => {
-    const users = await User.find({ _id: { $ne: req.user._id } }).select('-password');
-    res.json(users);
-  });
+// @desc    Delete user
+// @route   DELETE /api/users/:id
+// @access  Private/Admin
+const deleteUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
 
+  if (user) {
+    await user.remove();
+    res.json({ message: "User removed" });
+  } else {
+    res.status(404);
+    throw new Error("User not found");
+  }
+});
 
-// GET a user's public profile
-const getPublicProfile = asyncHandler(async (req, res) => {
-    const user = await User.findById(req.params.id).select('-password');
-    if (user) {
-      res.json(user);
-    } else {
-      res.status(404);
-      throw new Error('User not found');
-    }
-  });
+// @desc    Get user by ID
+// @route   GET /api/users/:id
+// @access  Private/Admin
+const getUserById = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id).select("-password");
 
-// POST send a connection request
-const sendConnectionRequest = asyncHandler(async (req, res) => {
-    const { to } = req.body;
-    const from = req.user._id;
+  if (user) {
+    res.json(user);
+  } else {
+    res.status(404);
+    throw new Error("User not found");
+  }
+});
 
-    if (to === from.toString()) {
-        res.status(400);
-        throw new Error("You can't send a request to yourself.");
-    }
+// @desc    Update user
+// @route   PUT /api/users/:id
+// @access  Private/Admin
+const updateUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
 
-    const existingConnection = await Connection.findOne({
-        $or: [
-            { from, to },
-            { from: to, to: from }
-        ]
+  if (user) {
+    user.name = req.body.name || user.name;
+    user.email = req.body.email || user.email;
+    user.isAdmin = req.body.isAdmin;
+
+    const updatedUser = await user.save();
+
+    res.json({
+      _id: updatedUser._id,
+      name: updatedUser.name,
+      email: updatedUser.email,
+      isAdmin: updatedUser.isAdmin,
     });
-
-    if (existingConnection) {
-        res.status(400);
-        throw new Error('Connection request already sent or you are already connected.');
-    }
-
-    const connection = new Connection({ from, to });
-    await connection.save();
-
-    await User.findByIdAndUpdate(from, { $push: { sentRequests: connection._id } });
-    await User.findByIdAndUpdate(to, { $push: { receivedRequests: connection._id } });
-
-    res.status(201).json({ message: 'Connection request sent.' });
+  } else {
+    res.status(404);
+    throw new Error("User not found");
+  }
 });
-
-// POST accept a connection request
-const acceptConnectionRequest = asyncHandler(async (req, res) => {
-    const { requestId } = req.body;
-    const userId = req.user._id;
-
-    const request = await Connection.findById(requestId);
-
-    if (!request || request.to.toString() !== userId.toString()) {
-        res.status(404);
-        throw new Error('Request not found or you are not authorized to accept it.');
-    }
-
-    request.status = 'accepted';
-    await request.save();
-
-    // Add each user to the other's connections list
-    await User.findByIdAndUpdate(request.from, { $push: { connections: request.to } });
-    await User.findByIdAndUpdate(request.to, { $push: { connections: request.from } });
-
-    // Remove the request from sent/received lists
-    await User.findByIdAndUpdate(request.from, { $pull: { sentRequests: requestId } });
-    await User.findByIdAndUpdate(request.to, { $pull: { receivedRequests: requestId } });
-
-
-    res.json({ message: 'Connection request accepted.' });
-});
-
-
-// POST reject a connection request
-const rejectConnectionRequest = asyncHandler(async (req, res) => {
-    const { requestId } = req.body;
-    const userId = req.user._id;
-
-    const request = await Connection.findById(requestId);
-
-    if (!request || request.to.toString() !== userId.toString()) {
-        res.status(404);
-        throw new Error('Request not found or you are not authorized to reject it.');
-    }
-
-    await Connection.findByIdAndRemove(requestId);
-
-    // Also remove from sent/received arrays
-    await User.findByIdAndUpdate(request.from, { $pull: { sentRequests: requestId } });
-    await User.findByIdAndUpdate(request.to, { $pull: { receivedRequests: requestId } });
-
-
-    res.json({ message: 'Connection request rejected.' });
-});
-
 
 module.exports = {
-  registerUser,
   authUser,
+  registerUser,
   getUserProfile,
   updateUserProfile,
-  getAllUsers,
-  getPublicProfile,
-  sendConnectionRequest,
-  acceptConnectionRequest,
-  rejectConnectionRequest,
+  getUsers,
+  deleteUser,
+  getUserById,
+  updateUser,
 };
