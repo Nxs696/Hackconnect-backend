@@ -59,47 +59,41 @@ const createHackathon = asyncHandler(async (req, res) => {
 
 // @desc    Update a hackathon
 // @route   PUT /api/hackathons/:id
-// @access  Private
+// @access  Private/Admin
 const updateHackathon = asyncHandler(async (req, res) => {
+  const { name, description, date, location, website } = req.body;
+
   const hackathon = await Hackathon.findById(req.params.id);
 
-  if (!hackathon) {
+  if (hackathon) {
+    hackathon.name = name;
+    hackathon.description = description;
+    hackathon.date = date;
+    hackathon.location = location;
+    hackathon.website = website;
+
+    const updatedHackathon = await hackathon.save();
+    res.json(updatedHackathon);
+  } else {
     res.status(404);
     throw new Error('Hackathon not found');
   }
-
-  if (hackathon.createdBy.toString() !== req.user.id) {
-    res.status(401);
-    throw new Error('User not authorized to update this hackathon');
-  }
-
-  const updatedHackathon = await Hackathon.findByIdAndUpdate(req.params.id, req.body, {
-    new: true,
-  });
-
-  res.json(updatedHackathon);
 });
 
 // @desc    Delete a hackathon
 // @route   DELETE /api/hackathons/:id
-// @access  Private
+// @access  Private/Admin
 const deleteHackathon = asyncHandler(async (req, res) => {
   const hackathon = await Hackathon.findById(req.params.id);
 
-  if (!hackathon) {
+  if (hackathon) {
+    await hackathon.remove();
+    res.json({ message: 'Hackathon removed' });
+  } else {
     res.status(404);
     throw new Error('Hackathon not found');
   }
-
-  if (hackathon.createdBy.toString() !== req.user.id) {
-    res.status(401);
-    throw new Error('User not authorized to delete this hackathon');
-  }
-
-  await hackathon.deleteOne();
-  res.json({ id: req.params.id });
 });
-
 module.exports = {
   getAllHackathons, // <-- UPDATED THE EXPORT NAME
   getHackathonById,
