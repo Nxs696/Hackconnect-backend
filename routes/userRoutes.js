@@ -6,28 +6,36 @@ const {
   getUserProfile,
   updateUserProfile,
   getUsers,
+  getPublicProfile,
+  sendConnectionRequest,
+  acceptConnectionRequest,
+  rejectConnectionRequest,
   deleteUser,
   getUserById,
   updateUser,
 } = require('../controllers/userController');
-const { protect } = require('../middleware/authMiddleware');
+const { protect, admin } = require('../middleware/authMiddleware');
 
-// Register and get all users
-router.route('/').post(registerUser).get(protect, getUsers);
-
-// Login
+// --- Public Routes ---
 router.post('/login', authUser);
+router.route('/').post(registerUser);
+router.route('/:id/profile').get(getPublicProfile);
 
-// Current logged-in user
+// --- Protected Routes (for the logged-in user) ---
 router.route('/profile')
   .get(protect, getUserProfile)
   .put(protect, updateUserProfile);
 
-// Admin routes
-router
-  .route('/:id')
-  .delete(protect, deleteUser)
-  .get(protect, getUserById)
-  .put(protect, updateUser);
+// --- Connection Request Routes ---
+router.post('/request', protect, sendConnectionRequest);
+router.post('/request/accept', protect, acceptConnectionRequest);
+router.post('/request/reject', protect, rejectConnectionRequest);
+
+// --- Admin Routes ---
+router.route('/').get(protect, admin, getUsers);
+router.route('/:id')
+  .get(protect, admin, getUserById)
+  .put(protect, admin, updateUser)
+  .delete(protect, admin, deleteUser);
 
 module.exports = router;
