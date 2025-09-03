@@ -5,31 +5,29 @@ const {
   authUser,
   getUserProfile,
   updateUserProfile,
-  getAllUsers,
-  getPublicProfile,
-  sendConnectionRequest,
-  acceptConnectionRequest,
-  rejectConnectionRequest,
+  getUsers,
+  deleteUser,
+  getUserById,
+  updateUser,
 } = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware');
 
 // Register and get all users
-router.route('/').post(registerUser).get(protect, getAllUsers);
+router.route('/').post(registerUser).get(protect, getUsers);
 
 // Login
 router.post('/login', authUser);
 
-// ✅ Current logged-in user
-router.route('/me')
-  .get(protect, getUserProfile)     // get own profile
-  .put(protect, updateUserProfile); // update own profile
+// Current logged-in user
+router.route('/profile')
+  .get(protect, getUserProfile)
+  .put(protect, updateUserProfile);
 
-// Public user profile by ID
-router.route('/:id').get(getPublicProfile);
-
-// Connection Requests
-router.post('/request', protect, sendConnectionRequest);
-router.post('/request/accept', protect, acceptConnectionRequest);
-router.post('/request/reject', protect, rejectConnectionRequest);
+// Admin routes
+router
+  .route('/:id')
+  .delete(protect, deleteUser)
+  .get(protect, getUserById)
+  .put(protect, updateUser);
 
 module.exports = router;
