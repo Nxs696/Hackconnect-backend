@@ -7,9 +7,16 @@ const generateToken = require('../utils/generatetoken');
 // @access  Public
 const authUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
+
+  if (!email || !password) {
+    res.status(400);
+    throw new Error("Please provide both email and password.");
+  }
+
   const user = await User.findOne({ email });
 
   if (user && (await user.matchPassword(password))) {
+    console.log(`User ${email} authenticated successfully.`);
     res.json({
       _id: user._id,
       name: user.name,
@@ -18,6 +25,7 @@ const authUser = asyncHandler(async (req, res) => {
       token: generateToken(user._id),
     });
   } else {
+    console.error(`Authentication failed for email: ${email}`);
     res.status(401);
     throw new Error("Invalid email or password");
   }
@@ -28,6 +36,12 @@ const authUser = asyncHandler(async (req, res) => {
 // @access  Public
 const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
+  
+  if (!name || !email || !password) {
+    res.status(400);
+    throw new Error("Please fill all fields");
+  }
+
   const userExists = await User.findOne({ email });
 
   if (userExists) {
@@ -51,6 +65,7 @@ const registerUser = asyncHandler(async (req, res) => {
   }
 });
 
+// ... (rest of your userController.js file remains the same)
 // @desc    Get user profile
 // @route   GET /api/users/profile
 // @access  Private
@@ -188,6 +203,7 @@ const acceptConnectionRequest = asyncHandler(async (req, res) => {
 const rejectConnectionRequest = asyncHandler(async (req, res) => {
   res.status(501).json({ message: 'Feature not implemented' });
 });
+
 
 module.exports = {
   authUser,
