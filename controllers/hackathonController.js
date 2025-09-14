@@ -61,16 +61,18 @@ const createHackathon = asyncHandler(async (req, res) => {
 // @route   PUT /api/hackathons/:id
 // @access  Private/Admin
 const updateHackathon = asyncHandler(async (req, res) => {
-  const { name, description, date, location, website } = req.body;
+  const { title, description, startDate, endDate, location, website, themes } = req.body;
 
   const hackathon = await Hackathon.findById(req.params.id);
 
   if (hackathon) {
-    hackathon.name = name;
-    hackathon.description = description;
-    hackathon.date = date;
-    hackathon.location = location;
-    hackathon.website = website;
+    hackathon.title = title || hackathon.title;
+    hackathon.description = description || hackathon.description;
+    hackathon.startDate = startDate || hackathon.startDate;
+    hackathon.endDate = endDate || hackathon.endDate;
+    hackathon.location = location || hackathon.location;
+    hackathon.website = website || hackathon.website;
+    hackathon.themes = themes || hackathon.themes;
 
     const updatedHackathon = await hackathon.save();
     res.json(updatedHackathon);
