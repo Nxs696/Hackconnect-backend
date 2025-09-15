@@ -30,6 +30,9 @@ const authUser = asyncHandler(async (req, res) => {
     throw new Error("Invalid email or password");
   }
 });
+const logoutUser = asyncHandler(async (req, res) => {
+  res.status(200).json({ message: 'User logged out successfully' });
+});
 
 // @desc    Register a new user
 // @route   POST /api/users
@@ -218,4 +221,5 @@ module.exports = {
   sendConnectionRequest,
   acceptConnectionRequest,
   rejectConnectionRequest,
+  logoutUser,
 };

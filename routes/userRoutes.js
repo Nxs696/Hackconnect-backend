@@ -1,41 +1,34 @@
-const express = require('express');
+// routes/userRoutes.js
+import express from 'express';
 const router = express.Router();
-const {
-  registerUser,
+import {
   authUser,
+  registerUser,
+  logoutUser,
   getUserProfile,
   updateUserProfile,
   getUsers,
-  getPublicProfile,
-  sendConnectionRequest,
-  acceptConnectionRequest,
-  rejectConnectionRequest,
   deleteUser,
   getUserById,
   updateUser,
-} = require('../controllers/userController');
-const { protect, admin } = require('../middleware/authMiddleware');
+} from '../controllers/userController.js';
+import { protect, admin } from '../middleware/authMiddleware.js';
 
-// --- Public Routes ---
+// The Fix: Separate the routes and use the correct path for registration
+router.route('/register').post(registerUser);
+router.route('/').get(protect, admin, getUsers);
+
+router.post('/logout', logoutUser);
+// Note: Changed '/auth' to '/login' to match standard practices
 router.post('/login', authUser);
-router.route('/').post(registerUser);
-router.route('/:id/profile').get(getPublicProfile);
-
-// --- Protected Routes (for the logged-in user) ---
-router.route('/profile')
+router
+  .route('/profile')
   .get(protect, getUserProfile)
   .put(protect, updateUserProfile);
-
-// --- Connection Request Routes ---
-router.post('/request', protect, sendConnectionRequest);
-router.post('/request/accept', protect, acceptConnectionRequest);
-router.post('/request/reject', protect, rejectConnectionRequest);
-
-// --- Admin Routes ---
-router.route('/').get(protect, admin, getUsers);
-router.route('/:id')
+router
+  .route('/:id')
+  .delete(protect, admin, deleteUser)
   .get(protect, admin, getUserById)
-  .put(protect, admin, updateUser)
-  .delete(protect, admin, deleteUser);
+  .put(protect, admin, updateUser);
 
-module.exports = router;
+export default router;
