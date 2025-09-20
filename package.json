@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Backend for HackConnect application",
   "main": "index.js",
+  "type": "commonjs",
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js"

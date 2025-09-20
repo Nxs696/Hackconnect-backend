@@ -1,6 +1,6 @@
 const asyncHandler = require("express-async-handler");
 const User = require("../models/userModel");
-const generateToken = require('../utils/generatetoken');
+const generateToken = require("../utils/generatetoken");
 
 // @desc    Auth user & get token
 // @route   POST /api/users/login
@@ -16,7 +16,6 @@ const authUser = asyncHandler(async (req, res) => {
   const user = await User.findOne({ email });
 
   if (user && (await user.matchPassword(password))) {
-    console.log(`User ${email} authenticated successfully.`);
     res.json({
       _id: user._id,
       name: user.name,
@@ -25,21 +24,24 @@ const authUser = asyncHandler(async (req, res) => {
       token: generateToken(user._id),
     });
   } else {
-    console.error(`Authentication failed for email: ${email}`);
     res.status(401);
     throw new Error("Invalid email or password");
   }
 });
+
+// @desc    Logout user
+// @route   POST /api/users/logout
+// @access  Private
 const logoutUser = asyncHandler(async (req, res) => {
-  res.status(200).json({ message: 'User logged out successfully' });
+  res.status(200).json({ message: "User logged out successfully" });
 });
 
 // @desc    Register a new user
-// @route   POST /api/users
+// @route   POST /api/users/register
 // @access  Public
 const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
-  
+
   if (!name || !email || !password) {
     res.status(400);
     throw new Error("Please fill all fields");
@@ -68,7 +70,6 @@ const registerUser = asyncHandler(async (req, res) => {
   }
 });
 
-// ... (rest of your userController.js file remains the same)
 // @desc    Get user profile
 // @route   GET /api/users/profile
 // @access  Private
@@ -92,26 +93,36 @@ const getUserProfile = asyncHandler(async (req, res) => {
 // @access  Private
 const updateUserProfile = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
+
   if (user) {
     user.name = req.body.name || user.name;
     user.email = req.body.email || user.email;
-    if (req.body.password) {
+    user.status = req.body.status || user.status;
+    user.bio = req.body.bio || user.bio;
+    if (req.body.avatar) {    // ✅ allow avatar update
+      user.avatar = req.body.avatar;
+    }
+    if (req.body.password && req.body.password.trim() !== '') {
       user.password = req.body.password;
     }
+
     const updatedUser = await user.save();
+
     res.json({
       _id: updatedUser._id,
       name: updatedUser.name,
       email: updatedUser.email,
       isAdmin: updatedUser.isAdmin,
+      status: updatedUser.status,
+      bio: updatedUser.bio,
+      avatar: updatedUser.avatar,   // ✅ return avatar
       token: generateToken(updatedUser._id),
     });
   } else {
     res.status(404);
-    throw new Error('User not found');
+    throw new Error("User not found");
   }
 });
-
 // @desc    Get all users (Admin)
 // @route   GET /api/users
 // @access  Private/Admin
@@ -147,15 +158,37 @@ const getUserById = asyncHandler(async (req, res) => {
   }
 });
 
-// The updateUserProfile function is already defined above, so we can remove this comment.
+// @desc    Update user (Admin)
+// @route   PUT /api/users/:id
+// @access  Private/Admin
+const updateUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
 
+  if (user) {
+    user.name = req.body.name || user.name;
+    user.email = req.body.email || user.email;
+    user.isAdmin =
+      req.body.isAdmin !== undefined ? req.body.isAdmin : user.isAdmin;
 
+    const updatedUser = await user.save();
+
+    res.json({
+      _id: updatedUser._id,
+      name: updatedUser.name,
+      email: updatedUser.email,
+      isAdmin: updatedUser.isAdmin,
+    });
+  } else {
+    res.status(404);
+    throw new Error("User not found");
+  }
+});
 
 // @desc    Get public user profile by ID
 // @route   GET /api/users/:id/profile
 // @access  Public
 const getPublicProfile = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.params.id).select('-password -isAdmin');
+  const user = await User.findById(req.params.id).select("-password -isAdmin");
   if (user) {
     res.json({
       _id: user._id,
@@ -164,7 +197,7 @@ const getPublicProfile = asyncHandler(async (req, res) => {
     });
   } else {
     res.status(404);
-    throw new Error('User not found');
+    throw new Error("User not found");
   }
 });
 
@@ -172,36 +205,35 @@ const getPublicProfile = asyncHandler(async (req, res) => {
 // @route   POST /api/users/request
 // @access  Private
 const sendConnectionRequest = asyncHandler(async (req, res) => {
-  res.status(501).json({ message: 'Feature not implemented' });
+  res.status(501).json({ message: "Feature not implemented" });
 });
 
 // @desc    Accept a connection request
 // @route   POST /api/users/request/accept
 // @access  Private
 const acceptConnectionRequest = asyncHandler(async (req, res) => {
-  res.status(501).json({ message: 'Feature not implemented' });
+  res.status(501).json({ message: "Feature not implemented" });
 });
 
 // @desc    Reject a connection request
 // @route   POST /api/users/request/reject
 // @access  Private
 const rejectConnectionRequest = asyncHandler(async (req, res) => {
-  res.status(501).json({ message: 'Feature not implemented' });
+  res.status(501).json({ message: "Feature not implemented" });
 });
 
-
-  module.exports = {
-    authUser,
-    registerUser,
-    getUserProfile,
-    updateUserProfile,
-    getUsers,
-    deleteUser,
-    getUserById,
-  
-    getPublicProfile,
-    sendConnectionRequest,
-    acceptConnectionRequest,
-    rejectConnectionRequest,
-    logoutUser,
-  };
+module.exports = {
+  authUser,
+  registerUser,
+  getUserProfile,
+  updateUserProfile,
+  getUsers,
+  deleteUser,
+  getUserById,
+  updateUser, // ✅ now added
+  getPublicProfile,
+  sendConnectionRequest,
+  acceptConnectionRequest,
+  rejectConnectionRequest,
+  logoutUser,
+};

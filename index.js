@@ -1,11 +1,11 @@
 // Import required packages
-import express from 'express';
-import dotenv from 'dotenv';
-import cors from 'cors';
-import connectDB from './config/db.js';
-import { notFound, errorHandler } from './middleware/errorMiddleware.js';
-import userRoutes from './routes/userRoutes.js';
-import hackathonRoutes from './routes/hackathonRoutes.js';
+const express = require('express');
+const dotenv = require('dotenv');
+const cors = require('cors');
+const connectDB = require('./config/db.js');
+const { notFound, errorHandler } = require('./middleware/errorMiddleware.js');
+const userRoutes = require('./routes/userRoutes.js');
+const hackathonRoutes = require('./routes/hackathonRoutes.js');
 
 // Load environment variables
 dotenv.config();
@@ -19,8 +19,9 @@ const app = express();
 // Use CORS middleware
 app.use(cors());
 
-// Middleware to parse JSON data
-app.use(express.json());
+// index.js
+app.use(express.json({ limit: '10mb' }));  // or even '50mb' if needed
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Root route
 app.get('/', (req, res) => {
